@@ -8,8 +8,9 @@ const open = require('open');
 
 removeTurboFiles();
 const filename = process.argv[process.argv.length - 1];
+const userParams = process.argv.filter((arg) => arg.startsWith('-'));
 if (filename.includes('turbotracer')) throw new Error('You need to specify js file');
-const args = ['--trace-turbo', filename];
+const args = ['--trace-turbo', ...userParams, filename];
 // console.log(args);
 const {stdout, stderr} = spawnSync('node', args);
 console.log(stdout.toString());

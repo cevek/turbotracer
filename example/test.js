@@ -19,7 +19,7 @@ function testSum() {
     }
     return sum;
 }
-
+// %OptimizeFunctionOnNextCall(testSum);
 testSum();
 testSum();
 testSum();
