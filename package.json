@@ -1,17 +1,30 @@
 {
-  "name": "turbotracer",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@types/node": "^17.0.35",
-    "ts-node": "^10.8.0",
-    "typescript": "^4.7.2"
-  }
+    "name": "turbotracer",
+    "version": "1.0.2",
+    "description": "Investigates v8/Node.js optimized functions, inlinings, native calls.",
+    "main": "dist/index.js",
+    "bin": {
+        "turbotracer": "./turbotracer.js"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "v8",
+        "turbofan"
+    ],
+    "author": "cevek",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/cevek/turbotracer.git"
+    },
+    "license": "MIT",
+    "dependencies": {
+        "open": "^8.4.0"
+    },
+    "devDependencies": {
+        "@types/node": "^17.0.35",
+        "ts-node": "^10.8.0",
+        "typescript": "^4.7.2"
+    }
 }

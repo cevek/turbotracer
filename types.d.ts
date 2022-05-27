@@ -4,6 +4,7 @@ export type File = {
     functions: Fun[];
 };
 export type FunVersion = {
+    id: string;
     deoptReason: string;
     nativeCalls: NativeCall[];
     inlinedFuns: InlinedFun[];
