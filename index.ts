@@ -191,8 +191,11 @@ for (const [filename, fileObj] of fileMap) {
 
 // writeFileSync('data.json', JSON.stringify(files, null, 2));
 
-const tempfile = tmpdir() + '/turbotracer.html';
-const htmlContent = `
+if (files.length === 0) {
+    console.log('Nothing to ouput: no one function has been optimized');
+} else {
+    const tempfile = tmpdir() + '/turbotracer.html';
+    const htmlContent = `
 <!doctype html>
 <html mol_view_root>
 	<head>
@@ -207,8 +210,9 @@ const htmlContent = `
 		<script src="https://opt.js.hyoo.ru/web.js" charset="utf-8"></script>
 		<script>$hyoo_js_opt.Root(0).data(\n${JSON.stringify(files, null, 2)}\n)</script></body>`;
 
-writeFileSync(tempfile, htmlContent);
-open(tempfile, {app: 'chrome'});
+    writeFileSync(tempfile, htmlContent);
+    open(tempfile, {app: 'chrome'});
+}
 // writeFileSync('test.html', htmlContent);
 
 // console.log(JSON.stringify(files, null, 2));
