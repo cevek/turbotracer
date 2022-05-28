@@ -1,2 +1,8 @@
 #!/usr/bin/env node
-require('./dist/index');
+
+const filename = process.argv[process.argv.length - 1];
+if (filename.startsWith('http')) {
+    require('./dist/web');
+} else {
+    require('./dist/index');
+}

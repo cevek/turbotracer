@@ -1,11 +1,10 @@
 {
     "name": "turbotracer",
-    "version": "1.0.5",
+    "version": "1.0.7",
     "description": "Investigates v8/Node.js optimized functions, inlinings, native calls.",
     "main": "dist/index.js",
     "bin": {
-        "turbotracer": "./turbotracer.js",
-        "turbotracerweb": "./turbotracerweb.js"
+        "turbotracer": "./turbotracer.js"
     },
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"

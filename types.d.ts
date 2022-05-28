@@ -10,7 +10,7 @@ export type Fun = {
     type: 'Fun';
     pos: number;
     optimizationCount: number;
-    deoptReasons: string[];
+    reasons: string[];
     optimized: boolean;
     source: {start: number; end: number};
     name: string;

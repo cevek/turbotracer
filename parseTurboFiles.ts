@@ -51,104 +51,107 @@ export function parseTurboFiles(dir: string, currentDir: string) {
 
     for (const turboFile of turboFiles) {
         // console.log(turboFile);
-        const turboJSON = JSON.parse(readFileSync(turboFile, 'utf8')) as TurboJSON;
+        try {
+            const turboJSON = JSON.parse(readFileSync(turboFile, 'utf8')) as TurboJSON;
 
-        const sources = new Map<SourceId, Source>();
-        for (const _id in turboJSON.sources) {
-            const id = _id as SourceId;
-            const sourceJSON = turboJSON.sources[id];
-            // const globalId = source.sourceName + '---' + id;
-            // funMap.set(globalId, {name: source.functionName, start: source.startPosition, end: source.endPosition});
-            getOrCreateFile(sourceJSON.sourceName, true);
-            const source: Source = {
-                start: sourceJSON.startPosition,
-                end: sourceJSON.endPosition,
-                name: sourceJSON.functionName,
-                fileName: sourceJSON.sourceName,
-            };
-            sources.set(id, source);
-        }
-        const inlinings = new Map<InliningId, Inlining>();
-        const rootInlining: Inlining = {
-            inlinings: new Map(),
-            nativeCalls: new Map(),
-            source: sources.get('-1' as SourceId)!,
-        };
-        inlinings.set('-1' as InliningId, rootInlining);
-        for (const inliningId in turboJSON.inlinings) {
-            const inliningJSON = turboJSON.inlinings[inliningId];
-            const inlining: Inlining = {
-                source: sources.get(String(inliningJSON.sourceId) as SourceId)!,
+            const sources = new Map<SourceId, Source>();
+            for (const _id in turboJSON.sources) {
+                const id = _id as SourceId;
+                const sourceJSON = turboJSON.sources[id];
+                // const globalId = source.sourceName + '---' + id;
+                // funMap.set(globalId, {name: source.functionName, start: source.startPosition, end: source.endPosition});
+                getOrCreateFile(sourceJSON.sourceName, true);
+                const source: Source = {
+                    start: sourceJSON.startPosition,
+                    end: sourceJSON.endPosition,
+                    name: sourceJSON.functionName,
+                    fileName: sourceJSON.sourceName,
+                };
+                sources.set(id, source);
+            }
+            const inlinings = new Map<InliningId, Inlining>();
+            const rootInlining: Inlining = {
                 inlinings: new Map(),
                 nativeCalls: new Map(),
+                source: sources.get('-1' as SourceId)!,
             };
-            inlinings.set(inliningId as InliningId, inlining);
+            inlinings.set('-1' as InliningId, rootInlining);
+            for (const inliningId in turboJSON.inlinings) {
+                const inliningJSON = turboJSON.inlinings[inliningId];
+                const inlining: Inlining = {
+                    source: sources.get(String(inliningJSON.sourceId) as SourceId)!,
+                    inlinings: new Map(),
+                    nativeCalls: new Map(),
+                };
+                inlinings.set(inliningId as InliningId, inlining);
 
-            const parent = inlinings.get(String(inliningJSON.inliningPosition.inliningId) as InliningId)!;
-            parent.inlinings.set(inliningJSON.inliningPosition.scriptOffset as Pos, inlining);
-        }
-
-        const rootFun = getOrCreate(
-            fileMap.get(rootInlining.source.fileName)!.functions,
-            rootInlining.source.start,
-            () => ({
-                name: rootInlining.source.name,
-                optimized: true,
-                source: {start: rootInlining.source.start, end: rootInlining.source.end},
-                versions: [] as RootFunVersion[],
-                root:
-                    rootInlining.source.start === 0 &&
-                    rootInlining.source.end === fileMap.get(rootInlining.source.fileName)!.code.length,
-            }),
-        );
-
-        const disassemblyPhase = turboJSON?.phases?.find((p) => p.name === 'disassembly');
-        const fnId = (disassemblyPhase?.data as never as string).match(
-            /^kind = TURBOFAN\nstack_slots = \d+\ncompiler = turbofan\naddress = (.*?)\n/,
-        )?.[1];
-
-        rootFun.versions.push({
-            id: fnId ?? '',
-            deoptReason: '',
-            inlinedFuns: rootInlining.inlinings,
-            nativeCalls: rootInlining.nativeCalls,
-        });
-
-        const lastPhase = turboJSON?.phases?.find((p) => p.name === 'V8.TFDecompressionOptimization');
-        const calls =
-            lastPhase?.data?.nodes?.filter(
-                (n) => n.opcode === 'Call' && !n.label.match(/StackGuard|js-call|ThrowAccessedUninitializedVariable/),
-            ) ?? [];
-        for (const call of calls) {
-            if (call.sourcePosition) {
-                const inlining = inlinings.get(String(call.sourcePosition.inliningId) as InliningId)!;
-                const pos = call.sourcePosition.scriptOffset as Pos;
-                getOrCreate(inlining.nativeCalls, pos, () => []).push(call.label);
+                const parent = inlinings.get(String(inliningJSON.inliningPosition.inliningId) as InliningId)!;
+                parent.inlinings.set(inliningJSON.inliningPosition.scriptOffset as Pos, inlining);
             }
+
+            const rootFun = getOrCreate(
+                fileMap.get(rootInlining.source.fileName)!.functions,
+                rootInlining.source.start,
+                () => ({
+                    name: rootInlining.source.name,
+                    optimized: true,
+                    source: {start: rootInlining.source.start, end: rootInlining.source.end},
+                    versions: [] as RootFunVersion[],
+                    root:
+                        rootInlining.source.start === 0 &&
+                        rootInlining.source.end === fileMap.get(rootInlining.source.fileName)!.code.length,
+                }),
+            );
+
+            const disassemblyPhase = turboJSON?.phases?.find((p) => p.name === 'disassembly');
+            const fnId = (disassemblyPhase?.data as never as string).match(
+                /^kind = TURBOFAN\nstack_slots = \d+\ncompiler = turbofan\naddress = (.*?)\n/,
+            )?.[1];
+
+            rootFun.versions.push({
+                id: fnId ?? '',
+                deoptReason: '',
+                inlinedFuns: rootInlining.inlinings,
+                nativeCalls: rootInlining.nativeCalls,
+            });
+
+            const lastPhase = turboJSON?.phases?.find((p) => p.name === 'V8.TFDecompressionOptimization');
+            const calls =
+                lastPhase?.data?.nodes?.filter(
+                    (n) =>
+                        n.opcode === 'Call' && !n.label.match(/StackGuard|js-call|ThrowAccessedUninitializedVariable/),
+                ) ?? [];
+            for (const call of calls) {
+                if (call.sourcePosition) {
+                    const inlining = inlinings.get(String(call.sourcePosition.inliningId) as InliningId)!;
+                    const pos = call.sourcePosition.scriptOffset as Pos;
+                    getOrCreate(inlining.nativeCalls, pos, () => []).push(call.label);
+                }
+            }
+        } catch (err) {
+            console.error('Skip parsing ' + turboFile + ': ' + (err as Error).message);
         }
     }
 
     function transformInliningMap(map: Map<Pos, Inlining>): InlinedFun[] {
-        return (
-            [...map]
-                // .filter(([_, inlining]) => {
-                //     return fileMap.get(inlining.source.fileName)!.code !== '';
-                // })
-                .map<InlinedFun>(([pos, inlining]) => ({
-                    type: 'InlinedFun',
-                    pos: pos,
-                    name: inlining.source.name,
-                    source: {
-                        start: inlining.source.start,
-                        end: inlining.source.end,
-                        uri: inlining.source.fileName.replace(currentDir, ''),
-                    },
-                    points: sortByPos([
-                        ...transformNativeCallsMap(inlining.nativeCalls),
-                        ...transformInliningMap(inlining.inlinings),
-                    ]),
-                }))
-        );
+        return [...map]
+            .filter(([_, inlining]) => {
+                return fileMap.get(inlining.source.fileName)!.code !== '';
+            })
+            .map<InlinedFun>(([pos, inlining]) => ({
+                type: 'InlinedFun',
+                pos: pos,
+                name: inlining.source.name,
+                source: {
+                    start: inlining.source.start,
+                    end: inlining.source.end,
+                    uri: inlining.source.fileName.replace(currentDir, ''),
+                },
+                points: sortByPos([
+                    ...transformNativeCallsMap(inlining.nativeCalls),
+                    ...transformInliningMap(inlining.inlinings),
+                ]),
+            }));
     }
     function transformNativeCallsMap(map: Map<Pos, string[]>): NativeCall[] {
         return [...map].map<NativeCall>(([pos, reasons]) => ({
@@ -160,11 +163,12 @@ export function parseTurboFiles(dir: string, currentDir: string) {
 
     const files: FileObj[] = [];
     for (const [filename, fileObj] of fileMap) {
+        if (fileObj.code === '') continue;
         const points: FileObj['points'] = [];
         for (const [, fun] of fileObj.functions) {
             const point: Fun = {
                 type: 'Fun',
-                deoptReasons: fun.versions.map((v) => v.deoptReason),
+                reasons: fun.versions.map((v) => v.deoptReason),
                 pos: fun.source.start,
                 source: {start: fun.source.start, end: fun.source.end},
                 optimizationCount: fun.versions.length,
