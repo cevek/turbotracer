@@ -6,6 +6,10 @@ const open = require('open');
 export function openHTML(files: FileObj[]) {
     if (files.length === 0) {
         console.log('Nothing to ouput: no one function has been optimized');
+        return;
+    }
+    if (files.length === 0) {
+        console.log('Nothing to ouput: no one function has been optimized');
     } else {
         const tempfile = tmpdir() + '/turbotracer.html';
         const htmlContent = `

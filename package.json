@@ -1,6 +1,6 @@
 {
     "name": "turbotracer",
-    "version": "1.0.7",
+    "version": "1.0.9",
     "description": "Investigates v8/Node.js optimized functions, inlinings, native calls.",
     "main": "dist/index.js",
     "bin": {
@@ -20,6 +20,7 @@
     },
     "license": "MIT",
     "dependencies": {
+        "chrome-location": "^1.2.1",
         "node-fetch": "^3.2.4",
         "open": "^8.4.0",
         "sync-fetch": "^0.4.1"

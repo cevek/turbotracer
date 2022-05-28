@@ -1,5 +1,5 @@
 import {spawnSync} from 'child_process';
-import { writeFileSync } from 'fs';
+import {writeFileSync} from 'fs';
 import {openHTML} from './openHTML';
 import {parseTurboFiles} from './parseTurboFiles';
 import {removeTurboFiles} from './utils';
@@ -19,9 +19,5 @@ const files = parseTurboFiles(turbodir, process.cwd());
 
 // writeFileSync('data.json', JSON.stringify(files, null, 2));
 
-if (files.length === 0) {
-    console.log('Nothing to ouput: no one function has been optimized');
-} else {
-    openHTML(files);
-}
+openHTML(files);
 removeTurboFiles(turbodir);
