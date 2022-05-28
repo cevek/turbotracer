@@ -8,22 +8,21 @@ import {removeTurboFiles} from './utils';
 const chromeLocation = require('chrome-location') as string;
 const url = process.argv[process.argv.length - 1];
 if (url.includes('turbotracer')) throw new Error('You need to specify url');
-const turbodir = tmpdir() + '/turbotracer/';
+const profileDir = tmpdir() + '/turbotracer/';
 try {
-    mkdirSync(turbodir);
+    mkdirSync(profileDir);
 } catch (e) {}
 
 // console.log(chromeLocation);
-removeTurboFiles(turbodir);
+removeTurboFiles('./');
 const output = execSync(
-    `"${chromeLocation}" --js-flags="--trace-turbo --allow-natives-syntax --trace-turbo-path=${turbodir}"  --user-data-dir=${turbodir} --profile-directory="turbotracer" --no-sandbox "${url}"`,
+    `"${chromeLocation}" --js-flags="--trace-turbo --log-code --allow-natives-syntax"  --user-data-dir=${profileDir} --profile-directory="turbotracer" --no-sandbox "${url}"`,
 );
 console.log(output.toString());
 
-const files = parseTurboFiles(turbodir, '');
+const files = parseTurboFiles('./', '');
 
 // writeFileSync('data.json', JSON.stringify(files, null, 2));
 
 openHTML(files);
-removeTurboFiles(turbodir);
 removeTurboFiles('./');

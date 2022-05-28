@@ -15,7 +15,7 @@ import {
     Source,
     SourceId,
 } from './types';
-import {fixFileNameForSorting, getOrCreate} from './utils';
+import {fixFileNameForSorting, getOrCreate, unescapeCSVField} from './utils';
 const fetch = require('sync-fetch');
 
 function readUri(uri: string) {
@@ -30,15 +30,26 @@ function readUri(uri: string) {
     return code;
 }
 export function parseTurboFiles(dir: string, currentDir: string) {
-    const turboFiles = readdirSync(dir)
+    const filesContentMap = new Map<string, string>();
+    const allFiles = readdirSync(dir);
+    const turboFiles = allFiles
         .filter((f) => f.startsWith('turbo-') && f.endsWith('.json'))
         .sort((a, b) => (fixFileNameForSorting(a) < fixFileNameForSorting(b) ? -1 : 1))
         .map((file) => dir + file);
     const fileMap = new Map<string, LFileObj>();
 
+    const isolateFiles = allFiles.filter((f) => f.startsWith('isolate-'));
+    for (const isolateFile of isolateFiles) {
+        const content = readFileSync(isolateFile, 'utf-8');
+        for (const [_, fileName, data] of content.matchAll(/^script-source,\d+,(.*?),(.*?)$/gm)) {
+            // console.log(fileName);
+            filesContentMap.set(fileName, unescapeCSVField(data));
+        }
+    }
+
     function getOrCreateFile(uri: string, isOriginal: boolean): LFileObj {
         return getOrCreate(fileMap, uri, () => {
-            let code = readUri(uri);
+            let code = filesContentMap.get(uri) ?? '';
             const file: LFileObj = {
                 code: code,
                 functions: new Map<number, RootFun>(),
@@ -58,9 +69,19 @@ export function parseTurboFiles(dir: string, currentDir: string) {
             for (const _id in turboJSON.sources) {
                 const id = _id as SourceId;
                 const sourceJSON = turboJSON.sources[id];
-                // const globalId = source.sourceName + '---' + id;
-                // funMap.set(globalId, {name: source.functionName, start: source.startPosition, end: source.endPosition});
-                getOrCreateFile(sourceJSON.sourceName, true);
+                if (sourceJSON.sourceName === '') {
+                    sourceJSON.sourceName = 'eval_' + Math.random().toString(33).substring(3, 6);
+                    fileMap.set(sourceJSON.sourceName, {
+                        code: ('\n' + sourceJSON.sourceText).padStart(sourceJSON.endPosition, ' '),
+                        functions: new Map(),
+                        isOriginal: true,
+                        sourceMapJSON: null,
+                    });
+                } else {
+                    // const globalId = source.sourceName + '---' + id;
+                    // funMap.set(globalId, {name: source.functionName, start: source.startPosition, end: source.endPosition});
+                    getOrCreateFile(sourceJSON.sourceName, true);
+                }
                 const source: Source = {
                     start: sourceJSON.startPosition,
                     end: sourceJSON.endPosition,
@@ -129,7 +150,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                 }
             }
         } catch (err) {
-            console.error('Skip parsing ' + turboFile + ': ' + (err as Error).stack);
+            console.error('Skip parsing ' + turboFile + ': ' + (err as Error).message);
         }
     }
 
