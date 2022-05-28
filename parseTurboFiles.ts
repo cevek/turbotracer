@@ -60,6 +60,8 @@ export function parseTurboFiles(dir: string, currentDir: string) {
         });
     }
 
+    const allPossibleReasons = new Set<string>();
+
     for (const turboFile of turboFiles) {
         // console.log(turboFile);
         try {
@@ -137,16 +139,26 @@ export function parseTurboFiles(dir: string, currentDir: string) {
             });
 
             const lastPhase = turboJSON?.phases?.find((p) => p.name === 'V8.TFDecompressionOptimization');
+            //Code:CreateShallowObjectLiteral
             const calls =
                 lastPhase?.data?.nodes?.filter(
                     (n) =>
-                        n.opcode === 'Call' && !n.label.match(/StackGuard|js-call|ThrowAccessedUninitializedVariable/),
+                        n.opcode === 'Call' &&
+                        !n.label.match(
+                            /ObjectDefineProperty|ReflectDefineProperty|ConstructForwardVarargs|ThrowTypeError|FastNewObject|CreateDataProperty|ThrowSuperAlreadyCalledError|AsyncFunctionAwaitUncaught|ThrowIteratorResultNotAnObject|Abort|NewRestArgumentsElements|StringIndexOf|CreateObjectWithoutProperties|ArrayIsArray|CreateShallowArrayLiteral|DateCurrentTime|JsonParse|CallWithSpread|FastNewClosure|CopyFastSmiOrObjectElements|StackGuard|js-call|ThrowAccessedUninitializedVariable|OrderedHashTableHealIndex|ReThrow|Trampoline|GrowArrayElements|FindOrderedHashMapEntry|LoadGlobal|DefineClass|RejectPromise|PerformPromiseThen|CreateObjectLiteral|FulfillPromise|CreateEmptyArrayLiteral|StringCharCodeAt|StringAdd_CheckNone|StringSubstring|StringPrototypeLastIndexOf|FastNewFunctionContextFunction|ConstructStub/,
+                        ),
                 ) ?? [];
             for (const call of calls) {
                 if (call.sourcePosition) {
                     const inlining = inlinings.get(String(call.sourcePosition.inliningId) as InliningId)!;
                     const pos = call.sourcePosition.scriptOffset as Pos;
-                    getOrCreate(inlining.nativeCalls, pos, () => []).push(call.label);
+                    const reason = call.label
+                        .replace('Call[', '')
+                        .replace('Code:', '')
+                        .replace(' Descriptor', '')
+                        .replace(/:r.*?\]$/, '');
+                    allPossibleReasons.add(reason);
+                    getOrCreate(inlining.nativeCalls, pos, () => []).push(reason);
                 }
             }
         } catch (err) {
@@ -157,7 +169,11 @@ export function parseTurboFiles(dir: string, currentDir: string) {
     function transformInliningMap(map: Map<Pos, Inlining>): InlinedFun[] {
         return [...map]
             .filter(([_, inlining]) => {
-                return fileMap.get(inlining.source.fileName)!.code !== '';
+                const exists = fileMap.get(inlining.source.fileName)!.code !== '';
+                if (!exists) {
+                    console.log('Cannot find file: ' + inlining.source.fileName);
+                }
+                return exists && !inlining.source.fileName.includes('node:');
             })
             .map<InlinedFun>(([pos, inlining]) => ({
                 type: 'InlinedFun',
@@ -184,7 +200,11 @@ export function parseTurboFiles(dir: string, currentDir: string) {
 
     const files: FileObj[] = [];
     for (const [filename, fileObj] of fileMap) {
-        if (fileObj.code === '') continue;
+        if (fileObj.code === '') {
+            console.log('Cannot find file: ' + filename);
+            continue;
+        }
+        if (filename.includes('node:')) continue;
         const points: FileObj['points'] = [];
         for (const [, fun] of fileObj.functions) {
             const point: Fun = {
@@ -208,7 +228,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
             sourceMapJSON: fileObj.sourceMapJSON,
         });
     }
-
+    // console.log('allPossibleReasons', [...allPossibleReasons]);
     return files;
 }
 

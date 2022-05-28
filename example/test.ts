@@ -12,10 +12,18 @@ function test2(type: string) {
 
 const test = new Function('a', 'b', 'a + b');
 
+const map = new Map([
+    [1, 2],
+    [3, 4],
+    [5, 6],
+]);
 function testSum() {
     let sum = 0;
     for (let i = 0; i < 1e6; i++) {
-        sum += test('+') + test('-') + test('*') + test('/') + test('mod');
+        for (const item of map) {
+            sum += item[0];
+        }
+        // sum += test('+') + test('-') + test('*') + test('/') + test('mod');
     }
     return sum;
 }
