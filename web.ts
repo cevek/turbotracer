@@ -13,11 +13,10 @@ try {
     mkdirSync(turbodir);
 } catch (e) {}
 
-console.log(chromeLocation);
+// console.log(chromeLocation);
 removeTurboFiles(turbodir);
 const output = execSync(
-    `"${chromeLocation}" --js-flags="--trace-turbo --allow-natives-syntax --trace-turbo-path=${turbodir}"  --user-data-dir=${turbodir} --profile-directory="turbotracer" --no-sandbox ` +
-        url,
+    `"${chromeLocation}" --js-flags="--trace-turbo --allow-natives-syntax --trace-turbo-path=${turbodir}"  --user-data-dir=${turbodir} --profile-directory="turbotracer" --no-sandbox "${url}"`,
 );
 console.log(output.toString());
 
