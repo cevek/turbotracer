@@ -5,6 +5,7 @@
         "forceConsistentCasingInFileNames": true,
         "strict": true,
         "outDir": "dist",
+        "sourceMap": true,
         "skipLibCheck": true
     }
 }

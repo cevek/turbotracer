@@ -1,35 +1,37 @@
+import {SourceMapConsumer} from 'source-map-js';
+
 export type FileObj = {
     uri: string;
     code: string;
-    functions: Fun[];
-};
-export type FunVersion = {
-    id: string;
-    deoptReason: string;
-    nativeCalls: NativeCall[];
-    inlinedFuns: InlinedFun[];
+    points: (Fun | NativeCall | InlinedFun)[];
+    sourceMapJSON: {} | null;
 };
 export type Fun = {
-    name: string;
-    source: {start: number; end: number};
+    type: 'Fun';
+    pos: number;
+    optimizationCount: number;
+    deoptReasons: string[];
     optimized: boolean;
-    versions: FunVersion[];
-    root: boolean;
+    source: {start: number; end: number};
+    name: string;
 };
 export type NativeCall = {
+    type: 'NativeCall';
     reasons: string[];
     pos: number;
 };
 export type InlinedFun = {
+    type: 'InlinedFun';
+    points: (NativeCall | InlinedFun)[];
     name: string;
     pos: number;
     source: {uri: string; start: number; end: number};
-    nativeCalls: NativeCall[];
-    inlinedFuns: InlinedFun[];
 };
 
 export type LFileObj = {
-    code: Buffer;
+    code: string;
+    sourceMapJSON: {} | null;
+    isOriginal: boolean;
     functions: Map<number, RootFun>;
 };
 

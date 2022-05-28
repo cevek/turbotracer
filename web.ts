@@ -11,14 +11,28 @@ const turbodir = tmpdir() + '/turbo/';
 try {
     mkdirSync(turbodir);
 } catch (e) {}
-console.log(turbodir);
+
 removeTurboFiles(turbodir);
-console.log(
-    execSync(
-        `open -a Google\\ Chrome --new -W --args --js-flags="--trace-turbo --allow-natives-syntax --trace-turbo-path=${turbodir}"  --user-data-dir="/Users/cody/Downloads/chrome/" --profile-directory="turbotracer" --no-sandbox ` +
+let output;
+if (process.platform === 'win32') {
+    output = execSync(
+        `chrome.exe --js-flags="--trace-turbo --allow-natives-syntax --trace-turbo-path=${turbodir}"  --user-data-dir=${turbodir}" --profile-directory="turbotracer" --no-sandbox ` +
             url,
-    ).toString(),
-);
+    );
+} else if (process.platform === 'linux') {
+    output = execSync(
+        `google-chrome --js-flags="--trace-turbo --allow-natives-syntax --trace-turbo-path=${turbodir}"  --user-data-dir=${turbodir}" --profile-directory="turbotracer" --no-sandbox ` +
+            url,
+    );
+} else if (process.platform === 'darwin') {
+    output = execSync(
+        `open -a Google\\ Chrome --new -W --args --js-flags="--trace-turbo --allow-natives-syntax --trace-turbo-path=${turbodir}"  --user-data-dir=${turbodir} --profile-directory="turbotracer" --no-sandbox ` +
+            url,
+    );
+} else {
+    throw new Error('Your platform is not supported');
+}
+console.log(output.toString());
 
 const files = parseTurboFiles(turbodir, '');
 
@@ -29,7 +43,5 @@ if (files.length === 0) {
 } else {
     openHTML(files);
 }
-// writeFileSync('test.html', htmlContent);
 
-// console.log(JSON.stringify(files, null, 2));
-// removeTurboFiles(turbodir);
+removeTurboFiles(turbodir);

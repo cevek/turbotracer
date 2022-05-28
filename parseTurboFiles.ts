@@ -1,23 +1,34 @@
 import {readdirSync, readFileSync} from 'fs';
+import {getSourceMapJSON} from './sourcemap';
 import {TurboJSON} from './turbo';
 import {
-    InlinedFun,
-    NativeCall,
-    Fun,
-    FunVersion,
     FileObj,
-    LFileObj,
-    SourceId,
+    Fun,
+    InlinedFun,
     Inlining,
     InliningId,
+    LFileObj,
+    NativeCall,
     Pos,
     RootFun,
     RootFunVersion,
     Source,
+    SourceId,
 } from './types';
 import {fixFileNameForSorting, getOrCreate} from './utils';
 const fetch = require('sync-fetch');
 
+function readUri(uri: string) {
+    let code = '';
+    try {
+        if (uri.startsWith('http')) {
+            code = fetch(uri).text();
+        } else {
+            code = readFileSync(uri, 'utf8');
+        }
+    } catch (e) {}
+    return code;
+}
 export function parseTurboFiles(dir: string, currentDir: string) {
     const turboFiles = readdirSync(dir)
         .filter((f) => f.startsWith('turbo-') && f.endsWith('.json'))
@@ -25,7 +36,19 @@ export function parseTurboFiles(dir: string, currentDir: string) {
         .map((file) => dir + file);
     const fileMap = new Map<string, LFileObj>();
 
-    console.log(turboFiles);
+    function getOrCreateFile(uri: string, isOriginal: boolean): LFileObj {
+        return getOrCreate(fileMap, uri, () => {
+            let code = readUri(uri);
+            const file: LFileObj = {
+                code: code,
+                functions: new Map<number, RootFun>(),
+                sourceMapJSON: getSourceMapJSON(uri, code, readUri),
+                isOriginal: isOriginal,
+            };
+            return file;
+        });
+    }
+
     for (const turboFile of turboFiles) {
         // console.log(turboFile);
         const turboJSON = JSON.parse(readFileSync(turboFile, 'utf8')) as TurboJSON;
@@ -36,23 +59,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
             const sourceJSON = turboJSON.sources[id];
             // const globalId = source.sourceName + '---' + id;
             // funMap.set(globalId, {name: source.functionName, start: source.startPosition, end: source.endPosition});
-            getOrCreate(fileMap, sourceJSON.sourceName, () => {
-                let code = Buffer.alloc(0);
-                console.log(sourceJSON.sourceName);
-                try {
-                    if (sourceJSON.sourceName.startsWith('http')) {
-                        const script = fetch(sourceJSON.sourceName).text();
-                        // console.log(script);
-                        code = Buffer.from(script);
-                    } else {
-                        code = Buffer.from(readFileSync(sourceJSON.sourceName, 'utf8'));
-                    }
-                } catch (e) {}
-                return {
-                    code: code,
-                    functions: new Map<number, RootFun>(),
-                };
-            });
+            getOrCreateFile(sourceJSON.sourceName, true);
             const source: Source = {
                 start: sourceJSON.startPosition,
                 end: sourceJSON.endPosition,
@@ -76,9 +83,9 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                 nativeCalls: new Map(),
             };
             inlinings.set(inliningId as InliningId, inlining);
-            inlinings
-                .get(String(inliningJSON.inliningPosition.inliningId) as InliningId)!
-                .inlinings.set(inliningJSON.inliningPosition.scriptOffset as Pos, inlining);
+
+            const parent = inlinings.get(String(inliningJSON.inliningPosition.inliningId) as InliningId)!;
+            parent.inlinings.set(inliningJSON.inliningPosition.scriptOffset as Pos, inlining);
         }
 
         const rootFun = getOrCreate(
@@ -128,6 +135,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                 //     return fileMap.get(inlining.source.fileName)!.code !== '';
                 // })
                 .map<InlinedFun>(([pos, inlining]) => ({
+                    type: 'InlinedFun',
                     pos: pos,
                     name: inlining.source.name,
                     source: {
@@ -135,13 +143,16 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                         end: inlining.source.end,
                         uri: inlining.source.fileName.replace(currentDir, ''),
                     },
-                    nativeCalls: transformNativeCallsMap(inlining.nativeCalls),
-                    inlinedFuns: transformInliningMap(inlining.inlinings),
+                    points: sortByPos([
+                        ...transformNativeCallsMap(inlining.nativeCalls),
+                        ...transformInliningMap(inlining.inlinings),
+                    ]),
                 }))
         );
     }
     function transformNativeCallsMap(map: Map<Pos, string[]>): NativeCall[] {
         return [...map].map<NativeCall>(([pos, reasons]) => ({
+            type: 'NativeCall',
             pos: pos,
             reasons: reasons,
         }));
@@ -149,28 +160,35 @@ export function parseTurboFiles(dir: string, currentDir: string) {
 
     const files: FileObj[] = [];
     for (const [filename, fileObj] of fileMap) {
-        const functions: Fun[] = [];
-        // if (fileObj.code === '') continue;
+        const points: FileObj['points'] = [];
         for (const [, fun] of fileObj.functions) {
-            const versions: FunVersion[] = [];
-            for (const version of fun.versions) {
-                versions.push({
-                    id: version.id,
-                    deoptReason: version.deoptReason,
-                    inlinedFuns: transformInliningMap(version.inlinedFuns),
-                    nativeCalls: transformNativeCallsMap(version.nativeCalls),
-                });
-            }
-            functions.push({
+            const point: Fun = {
+                type: 'Fun',
+                deoptReasons: fun.versions.map((v) => v.deoptReason),
+                pos: fun.source.start,
+                source: {start: fun.source.start, end: fun.source.end},
+                optimizationCount: fun.versions.length,
+                optimized: true,
                 name: fun.name,
-                optimized: fun.optimized,
-                source: fun.source,
-                versions: versions,
-                root: fun.root,
-            });
+            };
+            points.push(point);
+            const lastFunVersion = fun.versions[fun.versions.length - 1];
+            points.push(...transformInliningMap(lastFunVersion.inlinedFuns));
+            points.push(...transformNativeCallsMap(lastFunVersion.nativeCalls));
         }
-        files.push({uri: filename.replace(currentDir, ''), code: fileObj.code.toString(), functions: functions});
+        files.push({
+            uri: filename.replace(currentDir, ''),
+            code: fileObj.code.toString(),
+            points: sortByPos(points),
+            sourceMapJSON: fileObj.sourceMapJSON,
+        });
     }
 
     return files;
+}
+
+function sortByPos<T extends {pos: number}>(points: T[]) {
+    return points.sort((a, b) => {
+        return a.pos < b.pos ? -1 : 1;
+    });
 }

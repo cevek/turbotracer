@@ -1,4 +1,4 @@
-function calc(obj, type) {
+export function calc(obj: {a: number; b: number}, type: string) {
     if (type === '+') {
         return plus(obj.a, obj.b);
     }
@@ -14,22 +14,21 @@ function calc(obj, type) {
     if (type === 'mod') {
         return mod(obj.a, obj.b);
     }
+    return 0;
 }
 
-function plus(a, b) {
+function plus(a: number, b: number) {
     return a + b;
 }
-function minus(a, b) {
+function minus(a: number, b: number) {
     return a - b;
 }
-function multiply(a, b) {
+function multiply(a: number, b: number) {
     return a * b;
 }
-function divide(a, b) {
+function divide(a: number, b: number) {
     return a / b;
 }
-function mod(a, b) {
+function mod(a: number, b: number) {
     return a % b;
 }
-
-module.exports = calc;

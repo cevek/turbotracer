@@ -1,11 +1,9 @@
-const calc = require('./calc');
-const obj = {};
-obj.a = 1;
-obj.b = 2;
+import {calc} from './calc';
+const obj: {a: number; b: number} = {a: 1, b: 2};
 
-function test(type) {
+function test(type: string) {
     // obj[type] = 1; // to change map
-    let r;
+    let r!: number;
     for (let i = 0; i < 1e4; i++) {
         r = calc(obj, type);
     }
