@@ -1,4 +1,4 @@
-export type File = {
+export type FileObj = {
     uri: string;
     code: string;
     functions: Fun[];
@@ -26,4 +26,39 @@ export type InlinedFun = {
     source: {uri: string; start: number; end: number};
     nativeCalls: NativeCall[];
     inlinedFuns: InlinedFun[];
+};
+
+export type LFileObj = {
+    code: Buffer;
+    functions: Map<number, RootFun>;
+};
+
+export type RootFun = {
+    name: string;
+    source: {start: number; end: number};
+    optimized: boolean;
+    versions: RootFunVersion[];
+    root: boolean;
+};
+export type RootFunVersion = {
+    deoptReason: string;
+    nativeCalls: Map<Pos, string[]>;
+    inlinedFuns: Map<Pos, Inlining>;
+    id: string;
+};
+// const funMap = new Map<string, {name: string; start: number; end: number}>();
+
+export type Pos = number & {brand: 'Pos'};
+export type SourceId = string & {brand: 'SourceId'};
+export type InliningId = string & {brand: 'InliningId'};
+export type Source = {
+    name: string;
+    start: number;
+    end: number;
+    fileName: string;
+};
+export type Inlining = {
+    source: Source;
+    nativeCalls: Map<Pos, string[]>;
+    inlinings: Map<Pos, Inlining>;
 };

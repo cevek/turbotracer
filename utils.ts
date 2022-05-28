@@ -6,10 +6,11 @@ export function fixFileNameForSorting(b: string) {
     });
 }
 
-export function removeTurboFiles() {
-    const files = readdirSync('./');
+export function removeTurboFiles(dir: string) {
+    const files = readdirSync(dir);
     files
         .filter((f) => f.startsWith('turbo-'))
+        .map((file) => dir + file)
         .forEach((f) => {
             unlinkSync(f);
         });
