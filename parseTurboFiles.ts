@@ -43,7 +43,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
         const content = readFileSync(isolateFile, 'utf-8');
         for (const [_, fileName, data] of content.matchAll(/^script-source,\d+,(.*?),(.*?)$/gm)) {
             // console.log(fileName);
-            filesContentMap.set(fileName, unescapeCSVField(data));
+            filesContentMap.set(fileName.replace(/\\\\/g, '\\'), unescapeCSVField(data));
         }
     }
 
@@ -229,6 +229,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
         });
     }
     // console.log('allPossibleReasons', [...allPossibleReasons]);
+    // console.log([...filesContentMap.keys()]);
     return files;
 }
 

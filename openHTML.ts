@@ -5,14 +5,11 @@ const open = require('open');
 
 export function openHTML(files: FileObj[]) {
     if (files.length === 0) {
-        console.log('Nothing to ouput: no one function has been optimized');
+        console.log('Nothing to output: no one function has been optimized');
         return;
     }
-    if (files.length === 0) {
-        console.log('Nothing to ouput: no one function has been optimized');
-    } else {
-        const tempfile = tmpdir() + '/turbotracer.html';
-        const htmlContent = `
+    const tempfile = tmpdir() + '/turbotracer.html';
+    const htmlContent = `
 <!doctype html>
 <html mol_view_root>
 	<head>
@@ -27,7 +24,6 @@ export function openHTML(files: FileObj[]) {
 		<script src="https://opt.js.hyoo.ru/web.js" charset="utf-8"></script>
 		<script>$hyoo_js_opt.Root(0).data(\n${JSON.stringify(files, null, 2)}\n)</script></body>`;
 
-        writeFileSync(tempfile, htmlContent);
-        open(tempfile, {app: 'chrome'});
-    }
+    writeFileSync(tempfile, htmlContent);
+    open(tempfile, {app: 'chrome'});
 }
