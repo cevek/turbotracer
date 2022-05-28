@@ -1,6 +1,6 @@
 {
     "name": "turbotracer",
-    "version": "1.0.9",
+    "version": "1.0.11",
     "description": "Investigates v8/Node.js optimized functions, inlinings, native calls.",
     "main": "dist/index.js",
     "bin": {

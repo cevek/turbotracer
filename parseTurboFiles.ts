@@ -42,7 +42,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
             const file: LFileObj = {
                 code: code,
                 functions: new Map<number, RootFun>(),
-                sourceMapJSON: getSourceMapJSON(uri, code, readUri),
+                sourceMapJSON: null, //getSourceMapJSON(uri, code, readUri),
                 isOriginal: isOriginal,
             };
             return file;
@@ -129,7 +129,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                 }
             }
         } catch (err) {
-            console.error('Skip parsing ' + turboFile + ': ' + (err as Error).message);
+            console.error('Skip parsing ' + turboFile + ': ' + (err as Error).stack);
         }
     }
 

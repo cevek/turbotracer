@@ -1,4 +1,4 @@
-import {dirname, resolve} from 'path';
+import {dirname, relative, resolve} from 'path';
 
 export function getSourceMapJSON(fileName: string, source: string, readUri: (uri: string) => string) {
     var sourceMappingURL = retrieveSourceMapURL(source);
@@ -15,6 +15,7 @@ export function getSourceMapJSON(fileName: string, source: string, readUri: (uri
     } else {
         // Support source map URLs relative to the source URL
         // console.log(sourceMappingURL);
+        
         sourceMappingURL = supportRelativeURL(fileName, sourceMappingURL);
         // console.log(sourceMappingURL);
         sourceMapData = readUri(sourceMappingURL);
