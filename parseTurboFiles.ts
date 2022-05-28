@@ -70,7 +70,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                 const id = _id as SourceId;
                 const sourceJSON = turboJSON.sources[id];
                 if (sourceJSON.sourceName === '') {
-                    sourceJSON.sourceName = 'eval_' + Math.random().toString(33).substring(3, 6);
+                    sourceJSON.sourceName = 'eval_' + Math.random().toString(33).substring(3, 8);
                     fileMap.set(sourceJSON.sourceName, {
                         code: ('\n' + sourceJSON.sourceText).padStart(sourceJSON.endPosition, ' '),
                         functions: new Map(),
@@ -162,7 +162,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
             .map<InlinedFun>(([pos, inlining]) => ({
                 type: 'InlinedFun',
                 pos: pos,
-                name: inlining.source.name,
+                name: inlining.source.fileName.startsWith('eval_') ? inlining.source.fileName : inlining.source.name,
                 source: {
                     start: inlining.source.start,
                     end: inlining.source.end,
