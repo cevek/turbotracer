@@ -44,7 +44,7 @@ export type RootFun = {
 };
 export type RootFunVersion = {
     deoptReason: string;
-    nativeCalls: Map<Pos, string[]>;
+    nativeCalls: Map<Pos, Set<string>>;
     inlinedFuns: Map<Pos, Inlining>;
     id: string;
 };
@@ -61,6 +61,6 @@ export type Source = {
 };
 export type Inlining = {
     source: Source;
-    nativeCalls: Map<Pos, string[]>;
+    nativeCalls: Map<Pos, Set<string>>;
     inlinings: Map<Pos, Inlining>;
 };

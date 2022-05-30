@@ -45,7 +45,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
         const content = readFileSync(isolateFile, 'utf-8');
         for (const [_, fileName, data] of content.matchAll(/^script-source,\d+,(.*?),(.*?)$/gm)) {
             // console.log(fileName);
-            filesContentMap.set(fileName.replace(/\\\\/g, '\\'), unescapeCSVField(data));
+            filesContentMap.set(unescapeCSVField(fileName), unescapeCSVField(data));
         }
     }
 
@@ -149,6 +149,8 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                             .replace(/0x[a-z\d]+/g, '')
                             .replace(/:r.*?]/, ']'),
                     );
+                } else if (node.opcode === 'Store' || node.opcode === 'Load') {
+                    allOpcodes.add(node.label);
                 } else {
                     allOpcodes.add(node.opcode);
                 }
@@ -164,19 +166,23 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                         n.opcode === 'ChangeInt32ToFloat64' ||
                         n.opcode === 'ChangeFloat64ToInt32' ||
                         n.opcode === 'RoundFloat64ToInt32' ||
-                        (n.opcode.match(/^Float64/) && n.opcode !== 'Float64ExtractHighWord32'),
+                        n.label.match(/Store\[kRepFloat64/) ||
+                        (n.opcode.match(/^Float64/) &&
+                            n.opcode !== 'Float64ExtractHighWord32' &&
+                            n.opcode !== 'Float64Constant'),
                 ) ?? [];
             for (const call of calls) {
                 if (call.sourcePosition) {
                     const inlining = inlinings.get(String(call.sourcePosition.inliningId) as InliningId)!;
                     const pos = call.sourcePosition.scriptOffset as Pos;
                     const reason = call.label
+                        .replace('Store[kRepFloat64, NoWriteBarrier]', 'StoreFloat64')
                         .replace('Call[', '')
                         .replace('Code:', '')
                         .replace(' Descriptor', '')
                         .replace(/:r.*?\]$/, '');
                     allPossibleReasons.add(reason);
-                    getOrCreate(inlining.nativeCalls, pos, () => []).push(reason);
+                    getOrCreate(inlining.nativeCalls, pos, () => new Set<string>()).add(reason);
                 }
             }
         } catch (err) {
@@ -208,11 +214,11 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                 ]),
             }));
     }
-    function transformNativeCallsMap(map: Map<Pos, string[]>): NativeCall[] {
+    function transformNativeCallsMap(map: Map<Pos, Set<string>>): NativeCall[] {
         return [...map].map<NativeCall>(([pos, reasons]) => ({
             type: 'NativeCall',
             pos: pos,
-            reasons: reasons,
+            reasons: [...reasons],
         }));
     }
 
@@ -227,7 +233,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
         for (const [, fun] of fileObj.functions) {
             const point: Fun = {
                 type: 'Fun',
-                reasons: fun.versions.map((v) => v.deoptReason),
+                reasons: [], //fun.versions.map((v) => v.deoptReason),
                 pos: fun.source.start,
                 source: {start: fun.source.start, end: fun.source.end},
                 optimizationCount: fun.versions.length,
