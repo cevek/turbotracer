@@ -22,6 +22,7 @@ try {
 removeTurboFiles('./');
 const output = execSync(
     `"${chromeLoc}" --js-flags="--trace-turbo --log-code --allow-natives-syntax"  --user-data-dir=${profileDir} --profile-directory="turbotracer" --no-sandbox "${url}"`,
+    {cwd: process.cwd()},
 );
 console.log(output.toString());
 

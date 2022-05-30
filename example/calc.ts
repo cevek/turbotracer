@@ -14,7 +14,7 @@ export function calc(obj: {a: number; b: number}, type: string) {
     if (type === 'mod') {
         return mod(obj.a, obj.b);
     }
-    return 0;
+    return obj.a <= obj.b ? 1 : -1;
 }
 
 function plus(a: number, b: number) {

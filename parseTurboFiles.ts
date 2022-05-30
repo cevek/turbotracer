@@ -30,6 +30,8 @@ function readUri(uri: string) {
     return code;
 }
 export function parseTurboFiles(dir: string, currentDir: string) {
+    const allOpcodes = new Set<string>();
+
     const filesContentMap = new Map<string, string>();
     const allFiles = readdirSync(dir);
     const turboFiles = allFiles
@@ -139,14 +141,30 @@ export function parseTurboFiles(dir: string, currentDir: string) {
             });
 
             const lastPhase = turboJSON?.phases?.find((p) => p.name === 'V8.TFDecompressionOptimization');
+            for (const node of lastPhase?.data?.nodes ?? []) {
+                if (node.opcode === 'Call') {
+                    allOpcodes.add(
+                        node.label
+                            .replace(/\[\d+\]/, '')
+                            .replace(/0x[a-z\d]+/g, '')
+                            .replace(/:r.*?]/, ']'),
+                    );
+                } else {
+                    allOpcodes.add(node.opcode);
+                }
+            }
             //Code:CreateShallowObjectLiteral
             const calls =
                 lastPhase?.data?.nodes?.filter(
                     (n) =>
-                        n.opcode === 'Call' &&
-                        !n.label.match(
-                            /ObjectDefineProperty|ReflectDefineProperty|ConstructForwardVarargs|ThrowTypeError|FastNewObject|CreateDataProperty|ThrowSuperAlreadyCalledError|AsyncFunctionAwaitUncaught|ThrowIteratorResultNotAnObject|Abort|NewRestArgumentsElements|StringIndexOf|CreateObjectWithoutProperties|ArrayIsArray|CreateShallowArrayLiteral|DateCurrentTime|JsonParse|CallWithSpread|FastNewClosure|CopyFastSmiOrObjectElements|StackGuard|js-call|ThrowAccessedUninitializedVariable|OrderedHashTableHealIndex|ReThrow|Trampoline|GrowArrayElements|FindOrderedHashMapEntry|LoadGlobal|DefineClass|RejectPromise|PerformPromiseThen|CreateObjectLiteral|FulfillPromise|CreateEmptyArrayLiteral|StringCharCodeAt|StringAdd_CheckNone|StringSubstring|StringPrototypeLastIndexOf|FastNewFunctionContextFunction|ConstructStub/,
-                        ),
+                        (n.opcode === 'Call' &&
+                            !n.label.match(
+                                /ObjectDefineProperty|ReflectDefineProperty|ConstructForwardVarargs|ThrowTypeError|FastNewObject|CreateDataProperty|Throw|AsyncFunctionAwaitUncaught|Abort|NewRestArgumentsElements|StringIndexOf|CreateObjectWithoutProperties|ArrayIsArray|CreateShallowArrayLiteral|DateCurrentTime|JsonParse|CallWithSpread|FastNewClosure|CopyFastSmiOrObjectElements|StackGuard|js-call|ThrowAccessedUninitializedVariable|OrderedHashTableHealIndex|ReThrow|Trampoline|GrowArrayElements|FindOrderedHashMapEntry|LoadGlobal|DefineClass|RejectPromise|PerformPromiseThen|CreateObjectLiteral|FulfillPromise|CreateEmptyArrayLiteral|StringCharCodeAt|StringAdd_CheckNone|StringSubstring|StringPrototypeLastIndexOf|FastNewFunctionContextFunction|ConstructStub/,
+                            )) ||
+                        n.opcode === 'ChangeInt32ToFloat64' ||
+                        n.opcode === 'ChangeFloat64ToInt32' ||
+                        n.opcode === 'RoundFloat64ToInt32' ||
+                        (n.opcode.match(/^Float64/) && n.opcode !== 'Float64ExtractHighWord32'),
                 ) ?? [];
             for (const call of calls) {
                 if (call.sourcePosition) {
@@ -230,6 +248,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
     }
     // console.log('allPossibleReasons', [...allPossibleReasons]);
     // console.log([...filesContentMap.keys()]);
+    // console.log([...allOpcodes].sort());
     return files;
 }
 
