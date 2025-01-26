@@ -114,6 +114,8 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                 parent.inlinings.set(inliningJSON.inliningPosition.scriptOffset as Pos, inlining);
             }
 
+            const disassemblyPhase = turboJSON?.phases?.find((p) => p.name === 'disassembly');
+
             const rootFun = getOrCreate(
                 fileMap.get(rootInlining.source.fileName)!.functions,
                 rootInlining.source.start,
@@ -122,13 +124,13 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                     optimized: true,
                     source: {start: rootInlining.source.start, end: rootInlining.source.end},
                     versions: [] as RootFunVersion[],
+                    asm: (disassemblyPhase?.data as unknown as string) ?? '',
                     root:
                         rootInlining.source.start === 0 &&
                         rootInlining.source.end === fileMap.get(rootInlining.source.fileName)!.code.length,
                 }),
             );
 
-            const disassemblyPhase = turboJSON?.phases?.find((p) => p.name === 'disassembly');
             const fnId = (disassemblyPhase?.data as never as string).match(
                 /^kind = TURBOFAN\nstack_slots = \d+\ncompiler = turbofan\naddress = (.*?)\n/,
             )?.[1];
@@ -200,7 +202,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                 return exists && !inlining.source.fileName.includes('node:');
             })
             .map<InlinedFun>(([pos, inlining]) => ({
-                type: 'InlinedFun',
+                type: 'InlinedFun' as const,
                 pos: pos,
                 name: inlining.source.fileName.startsWith('eval_') ? inlining.source.fileName : inlining.source.name,
                 source: {
@@ -237,6 +239,7 @@ export function parseTurboFiles(dir: string, currentDir: string) {
                 pos: fun.source.start,
                 source: {start: fun.source.start, end: fun.source.end},
                 optimizationCount: fun.versions.length,
+                asm: fun.asm,
                 optimized: true,
                 name: fun.name,
             };

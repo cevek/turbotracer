@@ -13,6 +13,7 @@ export type Fun = {
     reasons: string[];
     optimized: boolean;
     source: {start: number; end: number};
+    asm: string;
     name: string;
 };
 export type NativeCall = {
@@ -38,6 +39,7 @@ export type LFileObj = {
 export type RootFun = {
     name: string;
     source: {start: number; end: number};
+    asm: string;
     optimized: boolean;
     versions: RootFunVersion[];
     root: boolean;
